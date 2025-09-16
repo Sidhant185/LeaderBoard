@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The LeaderBoard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #2d2d2d 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 1000px;
+      width: 100%;
+    }
+    
+    h1 {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      color: #00d4ff;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      position: relative;
+    }
+    
+    h1::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+    }
+    
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+    
+    .refresh-btn {
+      padding: 12px 16px;
+      font-size: 1rem;
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 212, 255, 0.1));
+      color: #00d4ff;
+      border: 2px solid #00d4ff;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      opacity: 0.9;
+      box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .refresh-btn:hover {
+      opacity: 1;
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(0, 212, 255, 0.2));
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 212, 255, 0.3);
+    }
+    
+    .refresh-btn:active {
+      transform: translateY(0);
+    }
+    
+    .refresh-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .refresh-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    .refresh-btn:hover::before {
+      left: 100%;
+    }
+    
+    .live-indicator {
+      padding: 6px 12px;
+      background: rgba(255, 0, 0, 0.1);
+      color: #ff4444;
+      border: 1px solid #ff4444;
+      border-radius: 15px;
+      font-weight: 500;
+      font-size: 0.8rem;
+      animation: pulse 2s infinite;
+      text-align: center;
+    }
+    
+    .connection-status {
+      padding: 6px 12px;
+      border-radius: 15px;
+      font-weight: 500;
+      font-size: 0.8rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    
+    .connection-status.online {
+      background: rgba(0, 255, 0, 0.1);
+      color: #00ff00;
+      border: 1px solid #00ff00;
+    }
+    
+    .connection-status.offline {
+      background: rgba(255, 0, 0, 0.1);
+      color: #ff4444;
+      border: 1px solid #ff4444;
+    }
+    
+    .last-updated {
+      padding: 4px 8px;
+      background: rgba(0, 212, 255, 0.1);
+      color: #00d4ff;
+      border: 1px solid #00d4ff;
+      border-radius: 10px;
+      font-weight: 400;
+      font-size: 0.7rem;
+      text-align: center;
+      margin-top: 5px;
+    }
+    
+    .cached-data-age {
+      padding: 4px 8px;
+      background: rgba(255, 165, 0, 0.1);
+      color: #ffa500;
+      border: 1px solid #ffa500;
+      border-radius: 10px;
+      font-weight: 400;
+      font-size: 0.7rem;
+      text-align: center;
+      margin-top: 5px;
+    }
+    
+    .offline-indicator {
+      padding: 4px 8px;
+      background: rgba(255, 0, 0, 0.1);
+      color: #ff4444;
+      border: 1px solid #ff4444;
+      border-radius: 10px;
+      font-weight: 400;
+      font-size: 0.7rem;
+      text-align: center;
+      margin-top: 5px;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.05); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    
+    .status {
+      margin: 20px 0;
+      font-size: 1rem;
+      color: #888;
+      font-weight: 400;
+    }
+    
+    table {
+      width: 100%;
+      max-width: 800px;
+      margin: 20px auto;
+      border-collapse: collapse;
+      font-size: 1.2rem;
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(20, 20, 20, 0.8);
+      border: 1px solid #333;
+    }
+    
+    th {
+      background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+      color: #00d4ff;
+      padding: 20px;
+      font-size: 1.3rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 2px solid #00d4ff;
+    }
+    
+    td {
+      padding: 18px 20px;
+      border-bottom: 1px solid #333;
+      font-weight: 400;
+      transition: all 0.3s ease;
+    }
+    
+    tbody tr {
+      transition: all 0.5s ease;
+      position: relative;
+    }
+    
+    tbody tr:nth-child(odd) {
+      background: rgba(25, 25, 25, 0.6);
+    }
+    
+    tbody tr:nth-child(even) {
+      background: rgba(30, 30, 30, 0.6);
+    }
+    
+    tbody tr:hover {
+      background: rgba(0, 212, 255, 0.1) !important;
+    }
+    
+    .team-move-up {
+      animation: moveUp 0.8s ease-out;
+    }
+    
+    .team-move-down {
+      animation: moveDown 0.8s ease-out;
+    }
+    
+    @keyframes moveUp {
+      0% { transform: translateY(0); background: rgba(0, 255, 0, 0.3); }
+      50% { transform: translateY(-10px); background: rgba(0, 255, 0, 0.5); }
+      100% { transform: translateY(0); background: rgba(0, 255, 0, 0.1); }
+    }
+    
+    @keyframes moveDown {
+      0% { transform: translateY(0); background: rgba(255, 0, 0, 0.3); }
+      50% { transform: translateY(10px); background: rgba(255, 0, 0, 0.5); }
+      100% { transform: translateY(0); background: rgba(255, 0, 0, 0.1); }
+    }
+    
+    /* Top 3 highlight */
+    tbody tr.top1 {
+      background: linear-gradient(135deg, #ffd700, #ffed4e) !important;
+      color: #000;
+      font-weight: 600;
+      font-size: 1.3rem;
+      border-left: 4px solid #ffd700;
+    }
+    
+    tbody tr.top2 {
+      background: linear-gradient(135deg, #c0c0c0, #e8e8e8) !important;
+      color: #000;
+      font-weight: 600;
+      font-size: 1.2rem;
+      border-left: 4px solid #c0c0c0;
+    }
+    
+    tbody tr.top3 {
+      background: linear-gradient(135deg, #cd7f32, #daa520) !important;
+      color: #000;
+      font-weight: 600;
+      font-size: 1.1rem;
+      border-left: 4px solid #cd7f32;
+    }
+    
+    .error {
+      color: #ff6b6b;
+      text-align: center;
+      padding: 20px;
+      font-size: 1rem;
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid #ff6b6b;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    
+    .loading {
+      color: #00d4ff;
+      text-align: center;
+      padding: 20px;
+      font-size: 1rem;
+      background: rgba(0, 212, 255, 0.1);
+      border: 1px solid #00d4ff;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    
+    .loading-skeleton {
+      width: 100%;
+      max-width: 800px;
+      margin: 20px auto;
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(20, 20, 20, 0.8);
+      border: 1px solid #333;
+    }
+    
+    .skeleton-row {
+      display: flex;
+      padding: 18px 20px;
+      border-bottom: 1px solid #333;
+      animation: skeleton-pulse 1.5s ease-in-out infinite;
+    }
+    
+    .skeleton-cell {
+      height: 20px;
+      background: linear-gradient(90deg, #333 25%, #444 50%, #333 75%);
+      background-size: 200% 100%;
+      border-radius: 4px;
+      margin-right: 20px;
+    }
+    
+    .skeleton-cell:last-child {
+      margin-right: 0;
+    }
+    
+    .skeleton-cell:nth-child(1) { width: 60px; }
+    .skeleton-cell:nth-child(2) { width: 200px; flex: 1; }
+    .skeleton-cell:nth-child(3) { width: 80px; }
+    
+    @keyframes skeleton-pulse {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    
+    .trend-up {
+      color: #00ff00;
+      font-weight: bold;
+    }
+    
+    .trend-down {
+      color: #ff4444;
+      font-weight: bold;
+    }
+    
+    .trend-neutral {
+      color: #888;
+    }
+    
+    .rank-change {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 0.9em;
+    }
+    
+    .rank-up {
+      color: #00ff00;
+    }
+    
+    .rank-down {
+      color: #ff4444;
+    }
+    
+    .search-container {
+      margin: 20px 0;
+      text-align: center;
+    }
+    
+    .search-input {
+      padding: 10px 15px;
+      font-size: 1rem;
+      background: rgba(20, 20, 20, 0.8);
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      width: 300px;
+      max-width: 100%;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+    }
+    
+    .export-btn {
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      background: rgba(0, 212, 255, 0.1);
+      color: #00d4ff;
+      border: 1px solid #00d4ff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      margin-left: 10px;
+    }
+    
+    .export-btn:hover {
+      background: rgba(0, 212, 255, 0.2);
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+      h1 { font-size: 2.5rem; }
+      table { font-size: 1rem; }
+      th, td { padding: 12px; }
+      .search-input { width: 250px; }
+      .controls { bottom: 10px; right: 10px; }
+    }
+    
+    @media (max-width: 480px) {
+      h1 { font-size: 2rem; }
+      table { font-size: 0.9rem; }
+      th, td { padding: 10px; }
+      .search-input { width: 200px; }
+      .refresh-btn { padding: 10px 12px; font-size: 0.9rem; }
+      .controls { bottom: 5px; right: 5px; }
+    }
+    
+    /* High contrast mode */
+    @media (prefers-contrast: high) {
+      body { background: #000; color: #fff; }
+      table { border: 2px solid #fff; }
+      th { background: #000; color: #fff; border: 2px solid #fff; }
+      td { border: 1px solid #fff; }
+    }
+    
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+      .team-move-up, .team-move-down { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>The LeaderBoard</h1>
+    
+    <div class="search-container">
+      <input type="text" id="searchInput" class="search-input" placeholder="Search teams..." autocomplete="off">
+      <button class="export-btn" onclick="exportData()">Export CSV</button>
+    </div>
+    
+    <div class="controls">
+      <button class="refresh-btn" id="refreshBtn" onclick="loadData()" title="Refresh (R key)">↻</button>
+      <div class="connection-status" id="connectionStatus">● ONLINE</div>
+      <div class="last-updated" id="lastUpdated"></div>
+      <div class="cached-data-age" id="cachedDataAge" style="display: none;"></div>
+      <div class="offline-indicator" id="offlineIndicator" style="display: none;">● OFFLINE</div>
+    </div>
+    
+    <div id="status" class="status">Loading...</div>
+    
+    <div id="loadingSkeleton" class="loading-skeleton" style="display: none;">
+      <div class="skeleton-row">
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+      </div>
+      <div class="skeleton-row">
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+      </div>
+      <div class="skeleton-row">
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+        <div class="skeleton-cell"></div>
+      </div>
+    </div>
+    
+    <table id="leaderboard">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Team</th>
+          <th>Points</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBISFFa375cU2qbb1b3Q35g1C6bMbEFNXyF_BcQFBtMPf7lLcXI7YE2asUKekWGUV4SyBR117sg5-V/pub?gid=1728845202&single=true&output=csv";
+    
+    // State management
+    let previousData = [];
+    let lastSuccessfulData = [];
+    let isUpdating = false;
+    let animationTimeouts = new Set();
+    let animationQueue = [];
+    let isAnimating = false;
+    let retryCount = 0;
+    let maxRetries = 3;
+    let retryDelay = 1000; // Start with 1 second
+    let maxRetryDelay = 10000; // Cap at 10 seconds
+    let searchFilter = '';
+    let isOnline = navigator.onLine;
+    let lastUpdateTime = null;
+    let cachedDataTimestamp = null;
+    
+    // Robust CSV parsing function with proper quote handling
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      let i = 0;
+      
+      while (i < line.length) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            // Escaped quote inside quoted field
+            current += '"';
+            i += 2; // Skip both quotes
+            continue;
+          } else {
+            // Toggle quote state
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          // Field separator
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+        i++;
+      }
+      
+      result.push(current.trim());
+      return result;
+    }
+    
+    // Clean and validate data with duplicate rank handling
+    function cleanAndValidateData(rawData) {
+      const validData = [];
+      const seenRanks = new Set();
+      const seenTeams = new Set();
+      const rankConflicts = [];
+      
+      for (let i = 1; i < rawData.length; i++) {
+        const line = rawData[i].trim();
+        if (!line) continue;
+        
+        // Handle different line endings
+        const cleanLine = line.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const parts = parseCSVLine(cleanLine);
+        
+        if (parts.length >= 3) {
+          const rank = parseInt(parts[0].trim());
+          const team = parts[1].trim().replace(/^["']|["']$/g, ''); // Remove quotes
+          const points = parseInt(parts[2].trim());
+          
+          // Validate data
+          if (isValidRank(rank) && isValidPoints(points) && isValidTeamName(team)) {
+            // Check for duplicate ranks
+            if (seenRanks.has(rank)) {
+              rankConflicts.push({ team, rank, points });
+              console.warn(`Duplicate rank ${rank} found for team: ${team}`);
+              continue;
+            }
+            
+            // Check for duplicate teams
+            if (seenTeams.has(team)) {
+              console.warn(`Duplicate team found: ${team}`);
+              continue;
+            }
+            
+            seenRanks.add(rank);
+            seenTeams.add(team);
+            validData.push({ rank, team, points });
+          }
+        }
+      }
+      
+      // Sort by rank to ensure proper ordering
+      validData.sort((a, b) => a.rank - b.rank);
+      
+      // Log conflicts for debugging
+      if (rankConflicts.length > 0) {
+        console.warn('Rank conflicts detected:', rankConflicts);
+      }
+      
+      return validData;
+    }
+    
+    function isValidRank(rank) {
+      return !isNaN(rank) && rank > 0 && Number.isInteger(rank);
+    }
+    
+    function isValidPoints(points) {
+      return !isNaN(points) && points >= 0 && Number.isInteger(points);
+    }
+    
+    function isValidTeamName(team) {
+      return team && team.length > 0 && team.length <= 100;
+    }
+    
+    // Connection status management
+    function updateConnectionStatus() {
+      const statusEl = document.getElementById('connectionStatus');
+      if (isOnline) {
+        statusEl.textContent = '● ONLINE';
+        statusEl.className = 'connection-status online';
+      } else {
+        statusEl.textContent = '● OFFLINE';
+        statusEl.className = 'connection-status offline';
+      }
+    }
+    
+    function updateLastUpdated() {
+      const lastUpdatedEl = document.getElementById('lastUpdated');
+      if (lastUpdateTime) {
+        const timeStr = lastUpdateTime.toLocaleTimeString();
+        lastUpdatedEl.textContent = `Last updated: ${timeStr}`;
+        lastUpdatedEl.style.display = 'block';
+      } else {
+        lastUpdatedEl.style.display = 'none';
+      }
+    }
+    
+    function updateCachedDataAge() {
+      const cachedAgeEl = document.getElementById('cachedDataAge');
+      const offlineEl = document.getElementById('offlineIndicator');
+      
+      if (cachedDataTimestamp) {
+        const age = Math.floor((Date.now() - cachedDataTimestamp) / 1000);
+        const minutes = Math.floor(age / 60);
+        const seconds = age % 60;
+        
+        if (minutes > 0) {
+          cachedAgeEl.textContent = `Cached: ${minutes}m ${seconds}s ago`;
+        } else {
+          cachedAgeEl.textContent = `Cached: ${seconds}s ago`;
+        }
+        cachedAgeEl.style.display = 'block';
+      } else {
+        cachedAgeEl.style.display = 'none';
+      }
+      
+      // Show offline indicator if offline
+      if (!isOnline) {
+        offlineEl.style.display = 'block';
+      } else {
+        offlineEl.style.display = 'none';
+      }
+    }
+    
+    function showLoading() {
+      document.getElementById('status').textContent = 'Loading...';
+      document.getElementById('status').className = 'status loading';
+      document.getElementById('loadingSkeleton').style.display = 'block';
+      document.getElementById('leaderboard').style.display = 'none';
+    }
+    
+    function hideLoading() {
+      document.getElementById('loadingSkeleton').style.display = 'none';
+      document.getElementById('leaderboard').style.display = 'table';
+    }
+    
+    function showError(message) {
+      document.getElementById('status').textContent = `Error: ${message}`;
+      document.getElementById('status').className = 'status error';
+      hideLoading();
+    }
+    
+    function showSuccess(count) {
+      document.getElementById('status').textContent = `Updated ${count} teams`;
+      document.getElementById('status').className = 'status';
+      hideLoading();
+      lastUpdateTime = new Date();
+      updateLastUpdated();
+    }
+    
+    function showFallback(message) {
+      document.getElementById('status').textContent = `${message} (showing last known data)`;
+      document.getElementById('status').className = 'status';
+      hideLoading();
+    }
+    
+    function clearAllAnimations() {
+      // Clear all animation classes
+      const rows = document.querySelectorAll('#leaderboard tbody tr');
+      rows.forEach(row => {
+        row.classList.remove('team-move-up', 'team-move-down');
+      });
+      
+      // Clear all animation timeouts
+      animationTimeouts.forEach(timeout => clearTimeout(timeout));
+      animationTimeouts.clear();
+      
+      // Clear animation queue
+      animationQueue = [];
+      isAnimating = false;
+    }
+    
+    // Animation queue system to prevent conflicts
+    function queueAnimation(teamName, type) {
+      animationQueue.push({ teamName, type });
+      processAnimationQueue();
+    }
+    
+    function processAnimationQueue() {
+      if (isAnimating || animationQueue.length === 0) return;
+      
+      isAnimating = true;
+      const animation = animationQueue.shift();
+      
+      animateTeamMovement(animation.teamName, animation.type);
+      
+      // Process next animation after current one completes
+      setTimeout(() => {
+        isAnimating = false;
+        processAnimationQueue();
+      }, 800);
+    }
+    
+    // Reliable deep comparison for data changes
+    function isDataEqual(data1, data2) {
+      if (data1.length !== data2.length) return false;
+      
+      // Sort both arrays by team name for consistent comparison
+      const sorted1 = [...data1].sort((a, b) => a.team.localeCompare(b.team));
+      const sorted2 = [...data2].sort((a, b) => a.team.localeCompare(b.team));
+      
+      for (let i = 0; i < sorted1.length; i++) {
+        const team1 = sorted1[i];
+        const team2 = sorted2[i];
+        
+        if (team1.team !== team2.team || 
+            team1.rank !== team2.rank || 
+            team1.points !== team2.points) {
+          return false;
+        }
+      }
+      
+      return true;
+    }
+    
+    function compareData(oldData, newData) {
+      const changes = [];
+      
+      newData.forEach(newTeam => {
+        const oldTeam = oldData.find(team => team.team === newTeam.team);
+        if (oldTeam) {
+          if (newTeam.rank < oldTeam.rank) {
+            changes.push({ 
+              team: newTeam.team, 
+              type: 'up', 
+              newRank: newTeam.rank, 
+              oldRank: oldTeam.rank,
+              pointsChange: newTeam.points - oldTeam.points
+            });
+          } else if (newTeam.rank > oldTeam.rank) {
+            changes.push({ 
+              team: newTeam.team, 
+              type: 'down', 
+              newRank: newTeam.rank, 
+              oldRank: oldTeam.rank,
+              pointsChange: newTeam.points - oldTeam.points
+            });
+          } else if (newTeam.points !== oldTeam.points) {
+            changes.push({ 
+              team: newTeam.team, 
+              type: 'points', 
+              newRank: newTeam.rank, 
+              oldRank: oldTeam.rank,
+              pointsChange: newTeam.points - oldTeam.points
+            });
+          }
+        }
+      });
+      
+      return changes;
+    }
+    
+    function animateTeamMovement(teamName, type) {
+      const rows = document.querySelectorAll('#leaderboard tbody tr');
+      rows.forEach(row => {
+        const teamCell = row.querySelector('td:nth-child(2)');
+        if (teamCell && teamCell.textContent.trim() === teamName) {
+          row.classList.add(type === 'up' ? 'team-move-up' : 'team-move-down');
+          const timeout = setTimeout(() => {
+            row.classList.remove('team-move-up', 'team-move-down');
+            animationTimeouts.delete(timeout);
+          }, 800);
+          animationTimeouts.add(timeout);
+        }
+      });
+    }
+    
+    function createTableRow(item, changes = []) {
+      const row = document.createElement('tr');
+      
+      // Add top 3 classes
+      if (item.rank === 1) row.classList.add('top1');
+      else if (item.rank === 2) row.classList.add('top2');
+      else if (item.rank === 3) row.classList.add('top3');
+      
+      // Find changes for this team
+      const teamChanges = changes.find(change => change.team === item.team);
+      
+      // Create points display with trend indicator
+      let pointsDisplay = item.points.toLocaleString();
+      if (teamChanges && teamChanges.pointsChange !== 0) {
+        const trendClass = teamChanges.pointsChange > 0 ? 'trend-up' : 'trend-down';
+        const changeSymbol = teamChanges.pointsChange > 0 ? '+' : '';
+        pointsDisplay += ` <span class="trend-indicator ${trendClass}">(${changeSymbol}${teamChanges.pointsChange})</span>`;
+      }
+      
+      // Create rank display with change indicator
+      let rankDisplay = item.rank;
+      if (teamChanges && teamChanges.type !== 'points') {
+        const rankChangeClass = teamChanges.type === 'up' ? 'rank-up' : 'rank-down';
+        const changeSymbol = teamChanges.type === 'up' ? '↑' : '↓';
+        rankDisplay += ` <span class="rank-change ${rankChangeClass}">${changeSymbol}</span>`;
+      }
+      
+      row.innerHTML = `
+        <td>${rankDisplay}</td>
+        <td>${item.team}</td>
+        <td>${pointsDisplay}</td>
+      `;
+      
+      return row;
+    }
+    
+    function updateTableSmoothly(newData, changes = []) {
+      const tbody = document.querySelector('#leaderboard tbody');
+      const existingRows = Array.from(tbody.querySelectorAll('tr'));
+      
+      // Performance optimization: batch DOM updates
+      const fragment = document.createDocumentFragment();
+      const rowsToRemove = [];
+      
+      // Create a map of existing rows by team name for efficient lookup
+      const existingRowsMap = new Map();
+      existingRows.forEach(row => {
+        const teamCell = row.querySelector('td:nth-child(2)');
+        if (teamCell) {
+          const teamName = teamCell.textContent.trim();
+          existingRowsMap.set(teamName, row);
+        }
+      });
+      
+      // Create a set of new team names for efficient lookup
+      const newTeamNames = new Set(newData.map(item => item.team));
+      
+      // Update existing rows or create new ones
+      newData.forEach((item, index) => {
+        const existingRow = existingRowsMap.get(item.team);
+        
+        if (existingRow) {
+          // Update existing row with trend indicators
+          const newRow = createTableRow(item, changes);
+          existingRow.innerHTML = newRow.innerHTML;
+          
+          // Update classes
+          existingRow.className = '';
+          if (item.rank === 1) existingRow.classList.add('top1');
+          else if (item.rank === 2) existingRow.classList.add('top2');
+          else if (item.rank === 3) existingRow.classList.add('top3');
+          
+          // Move to correct position if needed
+          if (existingRow.parentNode.children[index] !== existingRow) {
+            tbody.insertBefore(existingRow, tbody.children[index]);
+          }
+        } else {
+          // Create new row
+          const newRow = createTableRow(item, changes);
+          fragment.appendChild(newRow);
+        }
+      });
+      
+      // Batch insert new rows
+      if (fragment.children.length > 0) {
+        tbody.appendChild(fragment);
+      }
+      
+      // Remove rows that are no longer in the data
+      existingRows.forEach(row => {
+        const teamCell = row.querySelector('td:nth-child(2)');
+        if (teamCell) {
+          const teamName = teamCell.textContent.trim();
+          if (!newTeamNames.has(teamName)) {
+            rowsToRemove.push(row);
+          }
+        }
+      });
+      
+      // Batch remove rows
+      rowsToRemove.forEach(row => row.remove());
+    }
+    
+    // Search functionality
+    function filterData(data, searchTerm) {
+      if (!searchTerm) return data;
+      return data.filter(item => 
+        item.team.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    function updateSearch() {
+      searchFilter = document.getElementById('searchInput').value;
+      // Use the most current data available
+      const currentData = lastSuccessfulData.length > 0 ? lastSuccessfulData : previousData;
+      const filteredData = filterData(currentData, searchFilter);
+      updateTableSmoothly(filteredData, []);
+    }
+    
+    // Preserve search filter during updates
+    function applySearchFilter() {
+      if (searchFilter) {
+        const currentData = lastSuccessfulData.length > 0 ? lastSuccessfulData : previousData;
+        const filteredData = filterData(currentData, searchFilter);
+        updateTableSmoothly(filteredData, []);
+      }
+    }
+    
+    // Export functionality with proper CSV escaping
+    function exportData() {
+      if (lastSuccessfulData.length === 0) {
+        alert('No data to export');
+        return;
+      }
+      
+      // Function to properly escape CSV fields
+      function escapeCsvField(field) {
+        const str = String(field);
+        // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+          return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      }
+      
+      const csvContent = [
+        'Rank,Team,Points',
+        ...lastSuccessfulData.map(item => 
+          `${item.rank},${escapeCsvField(item.team)},${item.points}`
+        )
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `leaderboard_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }
+    
+    // Retry logic with capped exponential backoff
+    async function fetchWithRetry(url, options = {}, currentRetry = 0) {
+      try {
+        // Add cache-busting headers to prevent browser caching
+        const fetchOptions = {
+          ...options,
+          cache: 'no-cache', // Use fetch cache option instead of headers
+          headers: {
+            ...options.headers
+          }
+        };
+        
+        console.log(`Making fetch request (attempt ${currentRetry + 1}) with options:`, fetchOptions);
+        const response = await fetch(url, fetchOptions);
+        console.log('Response status:', response.status, response.statusText);
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        retryCount = 0; // Reset on success
+        return response;
+      } catch (error) {
+        console.error('Fetch error:', error);
+        if (currentRetry < maxRetries) {
+          const delay = Math.min(retryDelay * Math.pow(2, currentRetry), maxRetryDelay);
+          console.log(`Retry ${currentRetry + 1}/${maxRetries} in ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return fetchWithRetry(url, options, currentRetry + 1);
+        }
+        throw error;
+      }
+    }
+    
+    // Load data from cache
+    function loadFromCache() {
+      try {
+        const cached = localStorage.getItem('leaderboardCache');
+        if (cached) {
+          const data = JSON.parse(cached);
+          if (data.timestamp && Date.now() - data.timestamp < 300000) { // 5 minutes
+            cachedDataTimestamp = data.timestamp;
+            updateCachedDataAge();
+            return data.leaderboard;
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load from cache:', error);
+      }
+      return null;
+    }
+    
+    // Save data to cache
+    function saveToCache(data) {
+      try {
+        const timestamp = Date.now();
+        localStorage.setItem('leaderboardCache', JSON.stringify({
+          leaderboard: data,
+          timestamp: timestamp
+        }));
+        cachedDataTimestamp = timestamp;
+        updateCachedDataAge();
+      } catch (error) {
+        console.warn('Failed to save to cache:', error);
+      }
+    }
+    
+    async function loadData() {
+      if (isUpdating) return; // Prevent concurrent updates
+      
+      try {
+        isUpdating = true;
+        showLoading();
+        
+        // Try to load from cache first if offline
+        if (!isOnline) {
+          const cachedData = loadFromCache();
+          if (cachedData) {
+            updateTableSmoothly(cachedData, []);
+            showFallback('Offline - showing cached data');
+            return;
+          } else {
+            throw new Error('No cached data available');
+          }
+        }
+        
+        console.log('Fetching fresh data from:', sheetUrl);
+        let response;
+        try {
+          response = await fetchWithRetry(sheetUrl);
+        } catch (error) {
+          console.log('Enhanced fetch failed, trying basic fetch:', error.message);
+          // Fallback to basic fetch if enhanced fetch fails
+          response = await fetch(sheetUrl);
+          if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const text = await response.text();
+        console.log('Raw response text length:', text.length);
+        console.log('First 200 characters:', text.substring(0, 200));
+        
+        // Split by lines and filter empty ones
+        const lines = text.split('\n').filter(line => line.trim());
+        console.log('Number of lines after filtering:', lines.length);
+        
+        if (lines.length < 2) {
+          throw new Error('No data rows found');
+        }
+        
+        // Parse and validate data
+        const leaderboard = cleanAndValidateData(lines);
+        
+        if (leaderboard.length === 0) {
+          if (lastSuccessfulData.length > 0) {
+            showFallback('No valid data found');
+            return;
+          } else {
+            throw new Error('No valid data found');
+          }
+        }
+        
+        // Sort by rank
+        leaderboard.sort((a, b) => a.rank - b.rank);
+        
+        // Check if this data is actually newer than what we have
+        // We'll compare the data to see if it's different, not just assume it's newer
+        if (lastSuccessfulData.length > 0) {
+          // Check if the new data is actually different using reliable comparison
+          const isDataDifferent = !isDataEqual(leaderboard, lastSuccessfulData);
+          console.log('Data comparison:', {
+            newDataLength: leaderboard.length,
+            currentDataLength: lastSuccessfulData.length,
+            isDifferent: isDataDifferent,
+            fetchTime: new Date().toLocaleTimeString(),
+            newData: leaderboard.slice(0, 3), // First 3 teams for debugging
+            currentData: lastSuccessfulData.slice(0, 3)
+          });
+          
+          if (!isDataDifferent) {
+            console.log('Data unchanged, skipping update');
+            showSuccess(`${leaderboard.length} teams (no changes)`);
+            hideLoading();
+            return;
+          }
+        }
+        
+        // Clear animations before updating
+        clearAllAnimations();
+        
+        // Check for changes and animate
+        let changes = [];
+        if (previousData.length > 0) {
+          changes = compareData(previousData, leaderboard);
+          changes.forEach(change => {
+            if (change.type !== 'points') {
+              queueAnimation(change.team, change.type);
+            }
+          });
+        }
+        
+        // Update table smoothly with changes
+        updateTableSmoothly(leaderboard, changes);
+        
+        // Store current data for next comparison
+        previousData = [...leaderboard];
+        lastSuccessfulData = [...leaderboard];
+        
+        // Save to cache
+        saveToCache(leaderboard);
+        
+        // Apply search filter if active
+        applySearchFilter();
+        
+        showSuccess(leaderboard.length);
+        
+      } catch (error) {
+        console.error('Error:', error);
+        
+        if (lastSuccessfulData.length > 0) {
+          showFallback(`Failed to load: ${error.message}`);
+        } else {
+          // Try to load from cache as last resort
+          const cachedData = loadFromCache();
+          if (cachedData) {
+            updateTableSmoothly(cachedData, []);
+            showFallback(`Network error - showing cached data: ${error.message}`);
+          } else {
+            showError(`Failed to load: ${error.message}`);
+          }
+        }
+      } finally {
+        isUpdating = false;
+      }
+    }
+    
+    // Event listeners
+    function initializeEventListeners() {
+      // Search functionality
+      const searchInput = document.getElementById('searchInput');
+      searchInput.addEventListener('input', updateSearch);
+      
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'r' || e.key === 'R') {
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            loadData();
+          }
+        }
+      });
+      
+      // Connection status monitoring
+      window.addEventListener('online', () => {
+        isOnline = true;
+        updateConnectionStatus();
+        loadData(); // Try to load fresh data when back online
+      });
+      
+      window.addEventListener('offline', () => {
+        isOnline = false;
+        updateConnectionStatus();
+      });
+      
+      // Refresh button state
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.addEventListener('click', () => {
+        if (!isUpdating) {
+          console.log('Manual refresh triggered');
+          // Force refresh by clearing cache and fetching fresh data
+          localStorage.removeItem('leaderboardCache');
+          loadData();
+        }
+      });
+      
+      // Touch gestures for mobile
+      let touchStartY = 0;
+      let touchEndY = 0;
+      
+      document.addEventListener('touchstart', (e) => {
+        touchStartY = e.changedTouches[0].screenY;
+      });
+      
+      document.addEventListener('touchend', (e) => {
+        touchEndY = e.changedTouches[0].screenY;
+        const swipeDistance = touchStartY - touchEndY;
+        
+        // Swipe down to refresh
+        if (swipeDistance > 100 && !isUpdating) {
+          loadData();
+        }
+      });
+    }
+    
+    // Initialize everything
+    function initialize() {
+      updateConnectionStatus();
+      initializeEventListeners();
+      
+      // Update cached data age every 10 seconds
+      setInterval(updateCachedDataAge, 10000);
+      
+      // Load fresh data immediately, don't show cached data first
+      loadData();
+    }
+    
+    // Start the application
+    initialize();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(loadData, 30000);
+  </script>
+</body>
+</html>
